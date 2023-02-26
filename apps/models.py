@@ -9,7 +9,7 @@ class Member(models.Model):
     avatar = models.ImageField(upload_to='profile_images', default='blank-profile-picture.png')
 
     def __str__(self):
-        return self.username
+        return self.user.username
 
 class Post(models.Model):
     content = models.TextField()
