@@ -1,15 +1,31 @@
 from django.shortcuts import render, redirect
 from django.contrib.auth import authenticate, login, logout
-from django.contrib.auth.models import User
+from django.contrib.auth.models import User 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from .forms import PostForm
 
 
-from .models import Member
+from .models import Member, Post
 
 @login_required(login_url='signin')
 def index(request):
     return render(request, 'index.html')
+
+@login_required(login_url='signin')
+def create_post(request):
+    form = PostForm()
+    if request.method == 'POST':
+        form = PostForm(request.POST, request.FILES)
+        if form.is_valid():
+            post = form.save(commit=False)
+            post.user = request.user.member
+            post.save()
+            messages.success(request, 'Bài đăng của bạn đã được tạo thành công!')
+            return redirect('home')
+
+    context = {'form': form}
+    return render(request, 'create_post.html', context)
 
 def signin(request):
     if request.method == 'POST':
