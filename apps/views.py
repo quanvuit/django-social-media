@@ -1,16 +1,43 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from .forms import PostForm
+from .forms import PostForm, CommentForm
 
 
-from .models import Member, Post
+from .models import Member, Post, Like
 
 @login_required(login_url='signin')
 def index(request):
     return render(request, 'index.html')
+
+@login_required(login_url='signin')
+def like_post(request, pk):
+    post = get_object_or_404(Post, pk=pk)
+    member = Member.objects.get(user=request.user)
+    try:
+        like = Like.objects.get(post=post, member=member)
+        like.delete()
+    except Like.DoesNotExist:
+        like = Like(post=post, member=member)
+        like.save()
+    return redirect('/', post_id=pk)
+
+@login_required(login_url='signin')
+def comment_post(request, pk):
+    post = get_object_or_404(Post, pk=pk)
+    if request.method == 'POST':
+        form = CommentForm(request.POST)
+        if form.is_valid():
+            comment = form.save(commit=False)
+            comment.post = post
+            comment.user = request.user.member
+            comment.save()
+            return redirect('/', pk=post.pk)
+    else:
+        form = CommentForm()
+    return render(request, 'index.html', {'form': form, 'post': post})
 
 @login_required(login_url='signin')
 def create_post(request):
@@ -19,13 +46,12 @@ def create_post(request):
         form = PostForm(request.POST, request.FILES)
         if form.is_valid():
             post = form.save(commit=False)
-            post.user = request.user.member
+            post.member = request.user.member
+            post.image = request.FILES.get('image_upload')
+            post.content = request.POST['content']
             post.save()
-            messages.success(request, 'Bài đăng của bạn đã được tạo thành công!')
-            return redirect('home')
-
-    context = {'form': form}
-    return render(request, 'create_post.html', context)
+            messages.success(request, 'Bài đăng của bạn đã được đăng thành công!')
+            return redirect('/')
 
 def signin(request):
     if request.method == 'POST':
