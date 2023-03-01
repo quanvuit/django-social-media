@@ -18,7 +18,7 @@ class Post(models.Model):
     member = models.ForeignKey(Member, on_delete=models.CASCADE)
 
     def __str__(self):
-        return self.image
+        return self.member.user
 
 class Comment(models.Model):
     content = models.TextField()

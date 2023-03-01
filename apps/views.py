@@ -3,7 +3,7 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from .forms import PostForm, CommentForm
+from .forms import PostForm, CommentForm, MemberForm
 
 
 from .models import Member, Post, Like
@@ -13,16 +13,17 @@ def index(request):
     return render(request, 'index.html')
 
 @login_required(login_url='signin')
-def like_post(request, pk):
-    post = get_object_or_404(Post, pk=pk)
-    member = Member.objects.get(user=request.user)
-    try:
-        like = Like.objects.get(post=post, member=member)
-        like.delete()
-    except Like.DoesNotExist:
-        like = Like(post=post, member=member)
-        like.save()
-    return redirect('/', post_id=pk)
+def like_post(request, post_id):
+    post = get_object_or_404(Post, pk=post_id)
+    user = request.user
+    like_qs = Like.objects.filter(member=user.member, post=post)
+
+    if like_qs.exists():
+        like_qs.delete()
+    else:
+        Like.objects.create(member=user.member, post=post)
+
+    return redirect('post_detail', post_id=post.id)
 
 @login_required(login_url='signin')
 def comment_post(request, pk):
@@ -40,6 +41,25 @@ def comment_post(request, pk):
     return render(request, 'index.html', {'form': form, 'post': post})
 
 @login_required(login_url='signin')
+def member_settings(request):
+    member = request.user.member
+
+    if request.method == 'POST':
+        form = MemberForm(request.POST, request.FILES, instance=member)
+        if form.is_valid():
+            form.save()
+            return redirect('profile', username=request.user.username)
+    else:
+        form = MemberForm(instance=member)
+
+    context = {
+        'form': form,
+        'member': member,
+    }
+    return render(request, 'member_settings.html', context)
+
+
+@login_required(login_url='signin')
 def create_post(request):
     form = PostForm()
     if request.method == 'POST':
@@ -51,6 +71,8 @@ def create_post(request):
             post.content = request.POST['content']
             post.save()
             messages.success(request, 'Bài đăng của bạn đã được đăng thành công!')
+            return redirect('/')
+        else:
             return redirect('/')
 
 def signin(request):
