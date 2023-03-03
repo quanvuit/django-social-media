@@ -41,7 +41,7 @@ def comment_post(request, pk):
     return render(request, 'index.html', {'form': form, 'post': post})
 
 @login_required(login_url='signin')
-def member_settings(request):
+def member_setting(request):
     member = request.user.member
 
     if request.method == 'POST':
@@ -56,7 +56,7 @@ def member_settings(request):
         'form': form,
         'member': member,
     }
-    return render(request, 'member_settings.html', context)
+    return render(request, 'setting.html', context)
 
 
 @login_required(login_url='signin')
@@ -70,7 +70,7 @@ def create_post(request):
             post.image = request.FILES.get('image_upload')
             post.content = request.POST['content']
             post.save()
-            messages.success(request, 'Bài đăng của bạn đã được đăng thành công!')
+            # messages.success(request, 'Bài đăng của bạn đã được đăng thành công!')
             return redirect('/')
         else:
             return redirect('/')
