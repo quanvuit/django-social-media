@@ -48,7 +48,7 @@ def member_setting(request):
         form = MemberForm(request.POST, request.FILES, instance=member)
         if form.is_valid():
             form.save()
-            return redirect('profile', username=request.user.username)
+            return redirect('/', username=request.user.username)
     else:
         form = MemberForm(instance=member)
 
@@ -61,18 +61,16 @@ def member_setting(request):
 
 @login_required(login_url='signin')
 def create_post(request):
-    form = PostForm()
     if request.method == 'POST':
         form = PostForm(request.POST, request.FILES)
         if form.is_valid():
             post = form.save(commit=False)
             post.member = request.user.member
-            post.image = request.FILES.get('image_upload')
-            post.content = request.POST['content']
             post.save()
             # messages.success(request, 'Bài đăng của bạn đã được đăng thành công!')
             return redirect('/')
         else:
+            # messages.success(request, 'Bài đăng của bạn đăng không thành công!')
             return redirect('/')
 
 def signin(request):
