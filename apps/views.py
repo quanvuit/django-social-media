@@ -5,12 +5,48 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from .forms import PostForm, CommentForm, MemberForm
 
-
-from .models import Member, Post, Like
+from django.db.models import Q
+from .models import Member, Post, Like, Friendship
 
 @login_required(login_url='signin')
 def index(request):
     return render(request, 'index.html')
+
+def search(request):
+    query = request.GET.get('q')
+    if query:
+        results = Member.objects.filter(
+            Q(user__username__icontains=query) |
+            Q(user__first_name__icontains=query) |
+            Q(user__last_name__icontains=query)
+        )
+    else:
+        results = None
+    return render(request, 'search.html', {'results': results, 'query': query})
+
+@login_required(login_url='signin')
+def profile(request, username):
+    member = get_object_or_404(Member, user__username=username)
+    friends = member.friend.all()
+    return render(request, 'profile.html', {'member': member, 'friends': friends})
+
+@login_required(login_url='signin')
+def add_friend(request, member_id):
+    member = get_object_or_404(Member, id=member_id)
+    friend_id = request.POST.get('friend_id')
+    if friend_id:
+        friend = get_object_or_404(Member, id=friend_id)
+        friendship, created = Friendship.objects.get_or_create(member=member, friend=friend)
+        if not created:
+            message = f"{friend.user.username} is already your friend."
+            return render(request, 'profile.html', {'member': member, 'message': message})
+        else:
+            message = f"You are now friends with {friend.user.username}."
+            return render(request, 'profile.html', {'member': member, 'message': message})
+    else:
+        message = "Please enter a valid friend ID."
+        return render(request, 'profile.html', {'member': member, 'message': message})
+
 
 @login_required(login_url='signin')
 def like_post(request, post_id):
